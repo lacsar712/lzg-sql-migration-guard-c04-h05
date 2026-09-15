@@ -37,6 +37,8 @@ function inspectAddColumn(expr: any): boolean {
   if (!isAdd) return false;
 
   const candidates: any[] = [];
+  // alter 动作本身携带 nullable / default_val，必须参与检查
+  candidates.push(expr);
   if (expr.column) candidates.push(expr.column);
   if (Array.isArray(expr.columns)) candidates.push(...expr.columns);
   if (expr.definition) candidates.push(expr.definition);

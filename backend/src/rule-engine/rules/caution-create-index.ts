@@ -13,10 +13,10 @@ function isCreateIndex(stmt: any): boolean {
 }
 
 function isConcurrent(stmt: any, sql: string): boolean {
-  if (stmt.concurrently === true || stmt.concurrent === true) return true;
+  // 语法树里 concurrently 键恒存在（未使用时为 null），必须检查值而非键
+  if (stmt.concurrently) return true;
+  if (stmt.concurrent === true) return true;
   if (/CREATE\s+(UNIQUE\s+)?INDEX\s+CONCURRENTLY/i.test(sql)) return true;
-  const kw = JSON.stringify(stmt).toLowerCase();
-  if (kw.includes('concurrent')) return true;
   return false;
 }
 

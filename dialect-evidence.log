@@ -1,0 +1,107 @@
+POST /api/auth/login -> 201 (token acquired)
+
+### 1a. same MySQL-only SQL, dialect=mysql
+> POST /api/v1/analyze
+> request body: {"dialect":"mysql","sql":"SELECT * FROM users LIMIT 10, 20;"}
+< HTTP 201
+< {
+ "id": "stub-mysql",
+ "ok": true,
+ "dialect": "mysql",
+ "sqlSummary": "SELECT * FROM users LIMIT 10, 20;",
+ "findings": [],
+ "summary": {
+  "total": 0,
+  "error": 0,
+  "warning": 0,
+  "info": 0
+ }
+}
+
+### 1b. same MySQL-only SQL, dialect=postgresql
+> POST /api/v1/analyze
+> request body: {"dialect":"postgresql","sql":"SELECT * FROM users LIMIT 10, 20;"}
+< HTTP 201
+< {
+ "id": "stub-postgresql",
+ "ok": false,
+ "dialect": "postgresql",
+ "sqlSummary": "SELECT * FROM users LIMIT 10, 20;",
+ "findings": [
+  {
+   "ruleId": "dialect_unsupported_syntax",
+   "severity": "error",
+   "message": "Dialect postgresql parse failed: Expected \"--\", \".\", \"/*\", \";\", \"EXCEPT\", \"INTERSECT\", \"INTO\", \"LIMIT\", \"OFFSET\", \"ORDER\", \"UNION\", \"WINDOW\", [ \\t\\n\\r], [0-9], [eE], or end of input but \",\" found.",
+   "location": {
+    "statementIndex": 0,
+    "snippet": "PARSE_ERROR"
+   }
+  }
+ ],
+ "parseError": "Expected \"--\", \".\", \"/*\", \";\", \"EXCEPT\", \"INTERSECT\", \"INTO\", \"LIMIT\", \"OFFSET\", \"ORDER\", \"UNION\", \"WINDOW\", [ \\t\\n\\r], [0-9], [eE], or end of input but \",\" found.",
+ "summary": {
+  "total": 1,
+  "error": 1,
+  "warning": 0,
+  "info": 0
+ }
+}
+
+### 2a. control rule, dialect=postgresql
+> POST /api/v1/analyze
+> request body: {"dialect":"postgresql","sql":"CREATE INDEX idx_users_email ON users(email);"}
+< HTTP 201
+< {
+ "id": "stub-postgresql",
+ "ok": true,
+ "dialect": "postgresql",
+ "sqlSummary": "CREATE INDEX idx_users_email ON users(email);",
+ "findings": [
+  {
+   "ruleId": "caution_create_index_nonconcurrent_pg",
+   "severity": "warning",
+   "message": "Prefer CREATE INDEX CONCURRENTLY on PostgreSQL to avoid long locks",
+   "location": {
+    "statementIndex": 0,
+    "snippet": "CREATE INDEX"
+   }
+  }
+ ],
+ "summary": {
+  "total": 1,
+  "error": 0,
+  "warning": 1,
+  "info": 0
+ }
+}
+
+### 2b. control rule, dialect=mysql
+> POST /api/v1/analyze
+> request body: {"dialect":"mysql","sql":"CREATE INDEX idx_users_email ON users(email);"}
+< HTTP 201
+< {
+ "id": "stub-mysql",
+ "ok": true,
+ "dialect": "mysql",
+ "sqlSummary": "CREATE INDEX idx_users_email ON users(email);",
+ "findings": [],
+ "summary": {
+  "total": 0,
+  "error": 0,
+  "warning": 0,
+  "info": 0
+ }
+}
+
+### 3. dialect field is validated/used: invalid value rejected
+> POST /api/v1/analyze
+> request body: {"dialect":"oracle","sql":"SELECT * FROM users LIMIT 10, 20;"}
+< HTTP 400
+< {
+ "message": [
+  "dialect must be one of the following values: postgresql, mysql, mariadb, sqlite, transactsql"
+ ],
+ "error": "Bad Request",
+ "statusCode": 400
+}
+

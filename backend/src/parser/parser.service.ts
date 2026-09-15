@@ -18,7 +18,7 @@ export type ParseResult = ParseSuccess | ParseFailure;
 
 const DIALECT_MAP: Record<Dialect, string> = {
   postgresql: 'PostgreSQL',
-  mysql: 'PostgreSQL',
+  mysql: 'MySQL',
   mariadb: 'MariaDB',
   sqlite: 'SQLite',
   transactsql: 'TransactSQL',

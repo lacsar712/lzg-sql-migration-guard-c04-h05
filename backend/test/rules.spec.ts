@@ -132,6 +132,36 @@ describe('SQL Migration Guard rules', () => {
     expect(r.parseError).toBeTruthy();
   });
 
+  it('mysql dialect parses MySQL-only LIMIT offset,count', () => {
+    const r = engine.analyze('SELECT * FROM users LIMIT 10, 20;', 'mysql');
+    expect(r.parseError).toBeUndefined();
+    expect(hasRule(r.findings, 'dialect_unsupported_syntax')).toBe(false);
+  });
+
+  it('mysql dialect parses MySQL-only ON DUPLICATE KEY UPDATE', () => {
+    const r = engine.analyze(
+      "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = 'b';",
+      'mysql',
+    );
+    expect(r.parseError).toBeUndefined();
+    expect(hasRule(r.findings, 'dialect_unsupported_syntax')).toBe(false);
+  });
+
+  it('postgresql dialect rejects MySQL-only LIMIT offset,count', () => {
+    const r = engine.analyze('SELECT * FROM users LIMIT 10, 20;', 'postgresql');
+    expect(r.parseError).toBeTruthy();
+    expect(hasRule(r.findings, 'dialect_unsupported_syntax')).toBe(true);
+  });
+
+  it('mysql dialect rejects PG-only RETURNING', () => {
+    const r = engine.analyze(
+      'DELETE FROM users WHERE id = 1 RETURNING id;',
+      'mysql',
+    );
+    expect(r.parseError).toBeTruthy();
+    expect(hasRule(r.findings, 'dialect_unsupported_syntax')).toBe(true);
+  });
+
   it('policy can turn off a rule', () => {
     const r = engine.analyze('DROP TABLE users;', 'postgresql', {
       no_drop_table: 'off',
